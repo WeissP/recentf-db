@@ -1,0 +1,485 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 13.2
+-- Dumped by pg_dump version 13.2
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: add_path(character varying, character varying, character varying); Type: FUNCTION; Schema: public; Owner: weiss
+--
+
+CREATE FUNCTION public.add_path(this_filepath character varying, this_tramp_path character varying, this_tramp_type character varying) RETURNS character varying
+    LANGUAGE plpgsql
+    AS $$
+  DECLARE res varchar;
+    BEGIN
+      IF exists(SELECT * 
+                  FROM file 
+                 WHERE filepath = this_filepath
+                   AND tramp_path = this_tramp_path
+                   AND tramp_type = this_tramp_type)
+          THEN
+              UPDATE file
+              SET last_ref = current_timestamp, freq = freq + 1
+              WHERE filepath = this_filepath
+              AND tramp_path = this_tramp_path
+              AND tramp_type = this_tramp_type;
+              SELECT 'updated' INTO res;
+              ELSE
+                  INSERT INTO file Values(this_tramp_type, this_tramp_path, this_filepath, current_timestamp, 1, 0) ;
+                  SELECT 'added' INTO res;
+          END IF;
+      RETURN res;
+    END; $$;
+
+
+ALTER FUNCTION public.add_path(this_filepath character varying, this_tramp_path character varying, this_tramp_type character varying) OWNER TO weiss;
+
+--
+-- Name: add_path(character varying, character varying, character varying, boolean); Type: FUNCTION; Schema: public; Owner: weiss
+--
+
+CREATE FUNCTION public.add_path(new_filepath character varying, new_tramp_path character varying, new_tramp_type character varying, is_bookmark boolean) RETURNS character varying
+    LANGUAGE plpgsql
+    AS $$
+  DECLARE res varchar;
+    BEGIN
+      IF exists(SELECT * 
+                  FROM file 
+                 WHERE filepath = new_filepath
+                   AND tramp_path = new_tramp_path
+                   AND tramp_type = new_tramp_type)
+          THEN
+              UPDATE file
+              SET last_ref = current_timestamp, freq = freq + 1
+              WHERE filepath = new_filepath
+              AND tramp_path = new_tramp_path
+              AND tramp_type = new_tramp_type;
+              IF is_bookmark IS NOT NULL THEN
+                  UPDATE file 
+                  SET bookmark = is_bookmark
+                  WHERE filepath = new_filepath
+                  AND tramp_path = new_tramp_path
+                  AND tramp_type = new_tramp_type;
+              END IF;
+              SELECT 'updated' INTO res;
+              ELSE
+                  INSERT INTO file Values(new_tramp_type, new_tramp_path, new_filepath, current_timestamp, 1, is_bookmark) ;
+                  SELECT 'added' INTO res;
+          END IF;
+      RETURN res;
+    END; $$;
+
+
+ALTER FUNCTION public.add_path(new_filepath character varying, new_tramp_path character varying, new_tramp_type character varying, is_bookmark boolean) OWNER TO weiss;
+
+--
+-- Name: add_path(character varying, character varying, character varying, integer); Type: FUNCTION; Schema: public; Owner: weiss
+--
+
+CREATE FUNCTION public.add_path(new_filepath character varying, new_tramp_path character varying, new_tramp_type character varying, new_priority integer) RETURNS character varying
+    LANGUAGE plpgsql
+    AS $$
+  DECLARE res varchar;
+    BEGIN
+      IF exists(SELECT * 
+                  FROM file 
+                 WHERE filepath = new_filepath
+                   AND tramp_path = new_tramp_path
+                   AND tramp_type = new_tramp_type)
+          THEN
+              UPDATE file
+              SET last_ref = current_timestamp, freq = freq + 1
+              WHERE filepath = new_filepath
+              AND tramp_path = new_tramp_path
+              AND tramp_type = new_tramp_type;
+              IF new_priority >= 0 THEN
+                  UPDATE file 
+                  SET priority = new_priority
+                  WHERE filepath = new_filepath
+                  AND tramp_path = new_tramp_path
+                  AND tramp_type = new_tramp_type;
+              END IF;
+              SELECT 'updated' INTO res;
+              ELSE
+                  INSERT INTO file Values(new_tramp_type, new_tramp_path, new_filepath, current_timestamp, 1, GREATEST(new_priority, 0)) ;
+                  SELECT 'added' INTO res;
+          END IF;
+      RETURN res;
+    END; $$;
+
+
+ALTER FUNCTION public.add_path(new_filepath character varying, new_tramp_path character varying, new_tramp_type character varying, new_priority integer) OWNER TO weiss;
+
+--
+-- Name: add_path(character varying, character varying, character varying, character varying); Type: FUNCTION; Schema: public; Owner: weiss
+--
+
+CREATE FUNCTION public.add_path(new_filepath character varying, new_tramp_path character varying, new_tramp_type character varying, new_tag character varying) RETURNS character varying
+    LANGUAGE plpgsql
+    AS $$
+  DECLARE res varchar;
+    BEGIN
+      IF exists(SELECT * 
+                  FROM file 
+                 WHERE filepath = new_filepath
+                   AND tramp_path = new_tramp_path
+                   AND tramp_type = new_tramp_type)
+          THEN
+              UPDATE file
+              SET last_ref = current_timestamp, freq = freq + 1
+              WHERE filepath = new_filepath
+              AND tramp_path = new_tramp_path
+              AND tramp_type = new_tramp_type;
+              IF new_tag IS NOT NULL THEN
+                  UPDATE file 
+                  SET tag = new_tag
+                  WHERE filepath = new_filepath
+                  AND tramp_path = new_tramp_path
+                  AND tramp_type = new_tramp_type;
+              END IF;
+              SELECT 'updated' INTO res;
+              ELSE
+                  INSERT INTO file Values(new_tramp_type, new_tramp_path, new_filepath, current_timestamp, 1, new_tag) ;
+                  SELECT 'added' INTO res;
+          END IF;
+      RETURN res;
+    END; $$;
+
+
+ALTER FUNCTION public.add_path(new_filepath character varying, new_tramp_path character varying, new_tramp_type character varying, new_tag character varying) OWNER TO weiss;
+
+--
+-- Name: update_priority(character varying, character varying, character varying, integer); Type: FUNCTION; Schema: public; Owner: weiss
+--
+
+CREATE FUNCTION public.update_priority(this_filepath character varying, this_tramp_path character varying, this_tramp_type character varying, this_priority integer) RETURNS character varying
+    LANGUAGE plpgsql
+    AS $$
+  DECLARE res varchar;
+    BEGIN
+      IF exists(SELECT * 
+                  FROM file 
+                 WHERE filepath = this_filepath
+                   AND tramp_path = this_tramp_path
+                   AND tramp_type = this_tramp_type)
+          THEN
+              UPDATE file
+              SET priority = this_priority
+              WHERE filepath = this_filepath
+              AND tramp_path = this_tramp_path
+              AND tramp_type = this_tramp_type;
+              SELECT 'priority updated' INTO res;
+              ELSE
+                  INSERT INTO file Values(this_tramp_type, this_tramp_path, this_filepath, current_timestamp, 1, this_priority) ;
+                  SELECT 'file added and priority updated' INTO res;
+          END IF;
+      RETURN res;
+    END; $$;
+
+
+ALTER FUNCTION public.update_priority(this_filepath character varying, this_tramp_path character varying, this_tramp_type character varying, this_priority integer) OWNER TO weiss;
+
+--
+-- Name: update_priority(character varying, character varying, character varying, bigint); Type: FUNCTION; Schema: public; Owner: weiss
+--
+
+CREATE FUNCTION public.update_priority(this_filepath character varying, this_tramp_path character varying, this_tramp_type character varying, this_priority bigint) RETURNS character varying
+    LANGUAGE plpgsql
+    AS $$
+  DECLARE res varchar;
+    BEGIN
+      IF exists(SELECT * 
+                  FROM file 
+                 WHERE filepath = this_filepath
+                   AND tramp_path = this_tramp_path
+                   AND tramp_type = this_tramp_type)
+          THEN
+              UPDATE file
+              SET priority = this_priority
+              WHERE filepath = this_filepath
+              AND tramp_path = this_tramp_path
+              AND tramp_type = this_tramp_type;
+              SELECT 'priority updated' INTO res;
+              ELSE
+                  INSERT INTO file Values(this_tramp_type, this_tramp_path, this_filepath, current_timestamp, 1, this_priority) ;
+                  SELECT 'file added and priority updated' INTO res;
+          END IF;
+      RETURN res;
+    END; $$;
+
+
+ALTER FUNCTION public.update_priority(this_filepath character varying, this_tramp_path character varying, this_tramp_type character varying, this_priority bigint) OWNER TO weiss;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: file; Type: TABLE; Schema: public; Owner: weiss
+--
+
+CREATE TABLE public.file (
+    tramp_type character varying NOT NULL,
+    tramp_path character varying NOT NULL,
+    filepath character varying NOT NULL,
+    last_ref date,
+    freq integer,
+    priority bigint
+);
+
+
+ALTER TABLE public.file OWNER TO weiss;
+
+--
+-- Name: test; Type: TABLE; Schema: public; Owner: weiss
+--
+
+CREATE TABLE public.test (
+    id character varying,
+    tags jsonb
+);
+
+
+ALTER TABLE public.test OWNER TO weiss;
+
+--
+-- Data for Name: file; Type: TABLE DATA; Schema: public; Owner: weiss
+--
+
+COPY public.file (tramp_type, tramp_path, filepath, last_ref, freq, priority) FROM stdin;
+host	host	/home/weiss/.emacs.d/emacs-config/weiss_settings<recentf-db.el	2021-07-08	1	0
+host	host	/home/weiss/.emacs.d/emacs-config/weiss_misc-function<wks.el	2021-07-08	1	0
+host	host	/home/weiss/.emacs.d/emacs-config/weiss_keybindings<wks.el	2021-07-08	1	0
+host	host	/home/weiss/clojure/tags	2021-07-07	1	0
+host	host	/home/weiss/Downloads/A Students Guide to Maxwells Equations by Daniel Fleisch (z-lib.org).pdf	2021-07-08	1	0
+host	host	/home/weiss/.emacs.d/emacs-config/weiss_settings<dired-filter.el	2021-07-08	1	0
+host	host	/home/weiss/clojure/recentf-db/get-priority.clj	2021-07-08	1	0
+host	host	/home/weiss/.emacs.d/emacs-config/weiss_leader<wks.el	2021-07-08	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-repository-ss2021/worksheet4/worksheet4.pdf	2021-07-12	6	0
+host	host	/home/weiss/Downloads/recentf-db/src/recentf_db/core.clj	2021-07-08	3	-1
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/10/Perfect.hs	2021-07-19	3	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/sql/10.sql	2021-07-16	5	0
+host	host	/home/weiss/.zprint.edn	2021-07-09	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/10/ex10.pdf	2021-07-08	1	0
+host	host	/home/weiss/clojure/recentf-db/insert.clj	2021-07-09	13	0
+host	host	fdsmnmm	2021-07-08	1	-1
+host	host	/home/weiss/clojure/recentf-db/clean-recentf.clj	2021-07-08	3	-1
+host	host	/home/weiss/core.test	2021-07-08	1	-1
+host	host	/home/weiss/Documents/personal/Impfung/BLANKO_Laufzettel_Impfdoku_Impfzentrum_SISP_210602.pdf	2021-07-08	1	0
+host	host	fdsfsfffffffffffa	2021-07-08	1	-1
+host	host	/home/weiss/clojure/recentf-db/.zprintrc	2021-07-09	1	0
+host	host	/home/weiss/clojure/recentf-db/common.clj	2021-07-08	1	0
+host	host	/home/weiss/Downloads/paredit (1).pdf	2021-07-08	1	-1
+host	host	/usr/local/share/emacs/28.0.50/lisp/emacs-lisp/subr-x.el.gz	2021-07-09	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/sql/S4.sql	2021-07-16	5	0
+host	host	/home/weiss/Downloads/class.ll	2021-07-08	3	-1
+host	host	/home/weiss/Downloads/Spiel.java	2021-07-08	2	-1
+host	host	/home/weiss/.emacs.d/local-package/snails-custom-backends/snails-backend-emacs-config.el	2021-07-09	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-repository-ss2021/worksheet4/database/data_dictionary_trip_records_hvfhs.pdf	2021-07-09	1	-1
+host	host	/home/weiss/clojure/recentf-db/test.clj	2021-07-09	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Vorlesungen/slides.pdf	2021-07-19	11	0
+host	host	/home/weiss/.emacs.d/local-package/snails-custom-backends/snails-backend-recentf-weiss.el	2021-07-09	1	0
+host	host	/home/weiss/clojure/recentf-db/clean_recentf.clj	2021-07-09	4	0
+host	host	fdsmnmmfdsxvc	2021-07-09	1	-1
+/ssh	lamp@scilab-0019.cs.uni-kl.de	/home/lamp/django/B9A3.txt	2021-07-09	5	0
+host	host	/home/weiss/.emacs.d/dump.el	2021-07-09	2	0
+host	host	/home/weiss/.emacs.d/straight/build/doom-themes/doom-one-light-theme.el	2021-07-09	1	0
+host	host	/home/weiss/.fonts/FUTRFW.TTF	2021-07-09	1	0
+host	host	/home/weiss/.emacs.d/local-package/snails/snails-backend-projectile.el	2021-07-10	1	0
+host	host	/home/weiss/.emacs.d/straight/repos/emacs-doom-themes/themes/doom-one-light-theme.el	2021-07-09	1	0
+host	host	/home/weiss/.emacs.d/local-package/snails-custom-backends/snails-backend-recentf-db.el	2021-07-09	11	0
+host	host	/home/weiss/.emacs.d/straight/repos/emacs-doom-themes/doom-themes.el	2021-07-09	1	0
+host	host	/home/weiss/.emacs.d/early-init.el	2021-07-09	2	0
+host	host	/home/weiss/clojure/recentf-db/recentf.sql	2021-07-19	8	0
+host	host	/var/spool/cron/weiss	2021-07-12	2	1
+host	host	/home/weiss/clojure/scripts/test.clj	2021-07-12	2	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/java/com/tukl/DBProject/controller/S3Ex4.java	2021-07-16	8	0
+host	host	/home/weiss/clojure/recentf-db/search.clj	2021-07-13	16	0
+host	host	/home/weiss/.emacs.d/local-package/snails/snails-backend-fd.el	2021-07-10	3	0
+host	host	/home/weiss/Python/getAvInfo.py	2021-07-11	3	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/10/Lists.hs	2021-07-19	2	0
+host	host	/home/weiss/.emacs.d/emacs-config/weiss_init.el	2021-07-15	4	0
+host	host	/home/weiss/Downloads/test.txt	2021-07-07	1	-1
+host	host	/home/weiss/Downloads/paredit.pdf	2021-07-07	1	-1
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/.tags/sql-9415cd98f632b10ca65cbc01b05bb65a-.tags	2021-07-09	1	-1
+host	host	/home/weiss/Downloads/log.txt	2021-07-08	1	-1
+host	host	/home/weiss/.emacs.d/elpa/zprint-20210613.1507/zprint.el	2021-07-09	1	-1
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/.tags/db-project-grpbb-ab09459c75a54ad16ed9770c7d8f256b-.tags	2021-07-09	1	-1
+host	host	/home/weiss/.emacs.d/elpa/cider-20210625.1300/cider.el	2021-07-09	1	-1
+host	host	/home/weiss/.emacs.d/init.el	2021-07-14	15	0
+host	host	/home/weiss/.emacs.d/emacs-config/weiss_modules.el	2021-07-15	12	0
+host	host	/home/weiss/Documents/Org-roam/orgzly/todo.org	2021-07-15	2	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/10/ex10.solutions.pdf	2021-07-19	5	0
+host	host	/home/weiss/.emacs.d/emacs-config/weiss-Emacs-Config-Manager.el	2021-07-15	7	1
+host	host	/home/weiss/.config/aria2/downloadsURL.txt	2021-07-17	8	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-repository-ss2021/worksheet4/database/data_dictionary_trip_records_fhv.pdf	2021-07-09	1	-1
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/9/ex9.pdf	2021-07-19	4	0
+host	host	/home/weiss/.emacs.d/emacs-config/weiss_startup.el	2021-07-19	4	0
+host	host	/home/weiss/.emacs.d/local-package/snails/snails-core.el	2021-07-10	1	0
+host	host	/home/weiss/.emacs.d/straight/build/citre/citre-peek.el	2021-07-10	1	0
+host	host	/home/weiss/.emacs.d/straight/repos/citre/citre-peek.el	2021-07-10	1	0
+host	host	/home/weiss/.emacs.d/straight/repos/citre/citre.el	2021-07-10	1	0
+host	host	/home/weiss/Downloads/m2623.zi	2021-07-11	1	-1
+host	host	/home/weiss/Downloads/ttt/m2623.zip+	2021-07-11	1	-1
+host	host	/home/weiss/Downloads/jkl.txt	2021-07-12	1	-1
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/1/ex1.pdf	2021-07-12	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/1/ex1.solutions_annontated.pdf	2021-07-12	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/java/com/tukl/DBProject/database/KSE/ConnecterKSE.java	2021-07-10	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/resources/application.properties	2021-07-10	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/resources/templates/S2Ex1.html	2021-07-10	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/resources/static/js/S3Ex4.js	2021-07-10	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/resources/static/js/S4Ex4.js	2021-07-10	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/resources/static/js/S2Ex1.js	2021-07-10	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/java/com/tukl/DBProject/controller/DBProjectController.java	2021-07-10	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/java/com/tukl/DBProject/controller/S2Ex1.java	2021-07-10	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/java/com/tukl/DBProject/database/imdb/entities/Akas.java	2021-07-10	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/target/classes/static/js/S4Ex4.js	2021-07-10	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/target/classes/static/js/S3Ex4.js	2021-07-10	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/resources/templates/S3Ex4.html	2021-07-10	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/.tags	2021-07-10	6	0
+host	host	/usr/local/share/emacs/28.0.50/lisp/indent.el.gz	2021-07-11	1	0
+host	host	/home/weiss/.emacs.d/local-package/snails-custom-backends/snails-backend-filter-buffer.el	2021-07-12	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/11/Tree.hs	2021-07-18	3	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/11/Fold.hs	2021-07-18	3	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Vorlesungen/lecture_2021-06-29/JoinList.hs	2021-07-11	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/sql/imdb/S3.sql	2021-07-16	2	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/java/com/tukl/DBProject/database/trip/ConnectorTrip.java	2021-07-10	3	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/java/com/tukl/DBProject/database/imdb/entities/StringProcessing.java	2021-07-10	2	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/resources/templates/S4Ex4.html	2021-07-10	3	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/4/BinaryNumbers.hs	2021-07-12	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/4/MapReduce.hs	2021-07-12	1	0
+host	host	/home/weiss/.emacs.d/local-package/weiss-dired-single-handed-mode.el	2021-07-11	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/java/com/tukl/DBProject/controller/log.csv	2021-07-12	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-repository-ss2021/worksheet3/worksheet3.pdf	2021-07-12	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/.git/COMMIT_EDITMSG	2021-07-12	3	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/.tags/.!.tags	2021-07-10	2	-1
+host	host	/home/weiss/Downloads/Tree.hs	2021-07-11	1	-1
+host	host	/home/weiss/Downloads/Tree (1).hs	2021-07-11	1	-1
+host	host	/home/weiss/Downloads/Tree (2).hs	2021-07-11	1	-1
+host	host	/home/weiss/Documents/Vorlesungen/db-project-repository-ss2021/worksheet4/database/data_dictionary_trip_records_green.pdf	2021-07-10	2	-1
+host	host	/home/weiss/.avfs/home/weiss/.m2/repository/org/clojure/clojure/1.10.3/clojure-1.10.3.jar#uzip/clojure/core.clj	2021-07-12	1	0
+host	host	/usr/local/share/emacs/28.0.50/lisp/ansi-color.el.gz	2021-07-13	1	0
+host	host	/home/weiss/.emacs.d/straight/build/rainbow-mode/rainbow-mode.el	2021-07-13	1	0
+host	host	/home/weiss/.emacs.d/straight/repos/rainbow-mode/rainbow-mode.el	2021-07-13	1	0
+host	host	/usr/local/share/emacs/28.0.50/lisp/hi-lock.el.gz	2021-07-13	1	0
+host	host	/home/weiss/Downloads/tttt.txt	2021-07-13	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/5/ex5.solutions.pdf	2021-07-19	3	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/6/ex6.solutions.pdf	2021-07-19	2	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/6/LazyNaturals.hs	2021-07-13	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Klausuren/INF_36_51_V_6_SS_2019_M_1197_600.pdf	2021-07-19	3	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/11/Maps.hs	2021-07-18	9	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Haskell/test.hs	2021-07-19	3	0
+host	host	/home/weiss/.emacs.d/diary	2021-07-16	2	-1
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/11/ex11.pdf	2021-07-18	8	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/4/ex4.solutions.pdf	2021-07-19	2	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/2/ex2.solutions.pdf	2021-07-19	2	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/3/ex3.solutions.pdf	2021-07-19	2	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Klausuren/INF_36_51_V_6_SS_2018_M_1195.txt	2021-07-19	3	0
+host	host	/home/weiss/.emacs.d/straight/build-cache.el	2021-07-13	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/java/com/tukl/DBProject/database/imdb/entities/SessionUser.java	2021-07-16	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/Spieler/Spieler.java	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/gui_javafx/.dir-locals.el	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/9/Evaluator-bai.hs	2021-07-19	2	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/gui_javafx/Spiel_Controller.java	2021-07-14	3	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/01907-de-amigorule.pdf	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/9/solutions/Evaluator.hs	2021-07-16	2	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/9/solutions/Evaluator2.hs	2021-07-16	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/gui_javafx/fxml/css/spiel.css	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/gui_javafx/fxml/css/rundeErgebnis.css	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/gui_javafx/SpielraumErstellen.java	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/gui_javafx/RundeErgebnis_Controller.java	2021-07-14	1	-1
+host	host	/home/weiss/weiss/mouse.sh	2021-07-18	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/gui_javafx/fxml/spielraumErstellen.fxml	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/gui_javafx/Einloggen.java	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/gui_javafx/Wartebereich_Controller.java	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/gui_javafx/SpielVorbei.java	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/gui_javafx/RundeErgebnis.java	2021-07-14	1	-1
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/gui_javafx/fxml/roundResult.fxml	2021-07-14	5	-1
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/Server_Client/SpielPoll.java	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/Server_Client/Client.java	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/Server_Client/Server.java	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/Server_Client/RMIInterface.java	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/Spiel/Spiel.java	2021-07-14	2	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/src/Spieler/Bot.java	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/Lama/test/Spieler_tests.java	2021-07-14	1	0
+host	host	/home/weiss/Documents/Vorlesungen/SEP/g10/.git/COMMIT_EDITMSG	2021-07-14	1	0
+host	host	/etc/locale.gen	2021-07-17	1	0
+host	host	/etc/locale.conf	2021-07-17	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/7/ex7.pdf	2021-07-19	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/4/Data.hs	2021-07-15	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/3/Map.hs	2021-07-15	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Vorlesungen/lecture_2021-05-05/Tree.lhs	2021-07-15	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/8/ex8.pdf	2021-07-15	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/8/Evaluator.hs	2021-07-15	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/8/Evaluator-bai.hs	2021-07-15	1	0
+host	/home/weiss/Dropbox/Org-roam/Ʀlink	maven_central_repository_search.org	2021-07-15	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/7/ex7.solutions.pdf	2021-07-19	2	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/11/solutions/Maps.hs	2021-07-18	1	0
+host	/home/weiss/Dropbox/Org-roam/Ʀlink	clojars.org	2021-07-15	1	0
+host	host	/home/weiss/.config/yadm/bootstrap	2021-07-18	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/java/com/tukl/DBProject/controller/S4Ex4.java	2021-07-16	4	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/src/main/java/com/tukl/DBProject/controller/Login.java	2021-07-16	1	0
+host	host	/home/weiss/Documents/Vorlesungen/db-project-grpbb/S3-Dataloading/main.go	2021-07-16	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/11/solutions/Fold.hs	2021-07-18	1	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/11/solutions/Tree.hs	2021-07-18	1	0
+host	host	/home/weiss/.emacs.d/.git/COMMIT_EDITMSG	2021-07-18	1	0
+host	host	/home/weiss/.config/yadm/bootstrap.d/install_go.sh	2021-07-18	1	0
+host	host	/home/weiss/.config/yadm/bootstrap.d/install_xmonad.sh	2021-07-18	1	0
+host	host	/home/weiss/.zshenv	2021-07-18	1	0
+host	host	/home/weiss/.Xresources	2021-07-18	1	0
+host	host	/home/weiss/.config/starship.toml	2021-07-18	1	0
+host	/home/weiss/Dropbox/Org-roam/Ʀlink	releasing_org_roam_v2_jethro_kuan.org	2021-07-18	1	0
+host	/home/weiss/Dropbox/Org-roam/Ʀlink	hitchhiker_s_rough_guide_to_org_roam_v2_org_roam_org_roam_wiki.org	2021-07-18	1	0
+host	host	/home/weiss/.emacs.d/bookmarks	2021-07-19	62	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/8/ex8.solutions.pdf	2021-07-19	3	0
+host	host	/home/weiss/Documents/Vorlesungen/fp/Uebungen/9/Evaluator.hs	2021-07-19	4	0
+host	host	/home/weiss/.config/yadm/bootstrap.d/install_emacs.sh	2021-07-19	2	0
+host	host	/home/weiss/.config/yadm/bootstrap.d/install-system-level-files.sh	2021-07-19	2	0
+host	host	/home/weiss/.config/yadm/bootstrap.d/install_arch.sh	2021-07-19	2	0
+host	host	/home/weiss/.config/system-level-dotfiles/etc/pacman.conf	2021-07-19	2	0
+host	host	/home/weiss/.zshrc	2021-07-19	2	0
+host	host	/home/weiss/.bashrc	2021-07-19	2	0
+host	host	/home/weiss/weiss/AutoStart.sh	2021-07-19	1	0
+host	host	/etc/pacman.conf	2021-07-19	2	0
+host	host	/home/weiss/weiss/psql-setup/permission.sh	2021-07-19	1	0
+host	host	/home/weiss/weiss/psql-setup/postInit.sh	2021-07-19	1	0
+host	host	/home/weiss/weiss/EmacsConfigManager/.git/COMMIT_EDITMSG	2021-07-19	1	0
+\.
+
+
+--
+-- Data for Name: test; Type: TABLE DATA; Schema: public; Owner: weiss
+--
+
+COPY public.test (id, tags) FROM stdin;
+a	["s"]
+b	["s", "adf"]
+c	[" s ", " adf "]
+\.
+
+
+--
+-- Name: file file_pkey; Type: CONSTRAINT; Schema: public; Owner: weiss
+--
+
+ALTER TABLE ONLY public.file
+    ADD CONSTRAINT file_pkey PRIMARY KEY (tramp_type, tramp_path, filepath);
+
+
+--
+-- PostgreSQL database dump complete
+--
+
