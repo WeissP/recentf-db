@@ -11,6 +11,8 @@ CREATE TABLE file
     PRIMARY KEY (tramp_type, tramp_path, filepath)
   );
 
+
+
 CREATE OR REPLACE FUNCTION add_path (this_filepath varchar, this_tramp_path varchar,this_tramp_type varchar)
   RETURNS varchar  AS $$
   DECLARE res varchar;
@@ -22,7 +24,7 @@ CREATE OR REPLACE FUNCTION add_path (this_filepath varchar, this_tramp_path varc
                    AND tramp_type = this_tramp_type)
           THEN
               UPDATE file
-              SET last_ref = current_timestamp, freq = freq + 1
+              SET last_ref = current_timestamp, freq = freq + 1, priority = greatest(0, priority)
               WHERE filepath = this_filepath
               AND tramp_path = this_tramp_path
               AND tramp_type = this_tramp_type;
@@ -74,8 +76,12 @@ CREATE OR REPLACE PROCEDURE disable-file (this_filepath varchar, this_tramp_path
 
 SELECT *
 FROM file
-WHERE filepath like 'fds%';
+WHERE filepath like '%roam%';
 
+SELECT filepath as filepath, freq / (extract(day from age(current_timestamp, last_ref)) + 0.5) as weight FROM file WHERE priority=0 AND tramp_type = 'host' AND tramp_path = 'host' AND filepath like '%roam%'
+
+
+SELECT filepath as filepath, freq / (extract(day from age(current_timestamp, last_ref)) + 0.5) FROM file WHERE priority=0 AND tramp_type = 'host' AND tramp_path = 'host' AND filepath like '%roam%';
 
 SELECT filepath FROM file WHERE filepath like '%' ORDER BY freq desc;
 
